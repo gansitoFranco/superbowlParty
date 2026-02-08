@@ -3,12 +3,15 @@ import streamlit as st
 import mysql.connector
 
 
-def get_connection():
-    return mysql.connector.connect(
-        host=st.secrets["DB_HOST"],
-        user=st.secrets["DB_USER"],
-        password=st.secrets["DB_PASSWORD"],
-        database=st.secrets["DB_NAME"],
-        port=int(st.secrets["DB_PORT"])
-    )
 
+def get_connection():
+    # Accedemos a la sección específica del TOML
+    credentials = st.secrets["connections"]["mysql"]
+    
+    return mysql.connector.connect(
+        host=credentials["host"],
+        user=credentials["username"], # Nota: en tu TOML es "username", no "user"
+        password=credentials["password"],
+        database=credentials["database"], # Nota: en tu TOML es "database", no "SuperBowlParty"
+        port=int(credentials["port"])
+    )
