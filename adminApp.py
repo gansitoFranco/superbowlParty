@@ -30,8 +30,8 @@ hawks_score_db = datos['seahawks_points']
 total_puntos_db = datos['total_points']
 
 # 3. Encabezado
-st.title("Super Bowl LX")
-st.write("NFL · Hoy, 5:30 p.m.")
+st.title("Super Bowl LX Admin")
+st.write("NFL · Panel de Control en Vivo")
 
 # 4. Resumen de Puntos Totales
 st.markdown(f"""
@@ -67,35 +67,41 @@ with st.form("marcador_form"):
 
     st.divider()
     
-    # --- SECCIÓN DE EVENTOS ESPECIALES (Nuevos Campos) ---
+    # --- SECCIÓN DE EVENTOS ESPECIALES ---
     st.subheader("Eventos Especiales")
-    c1, c2, c3 = st.columns(3)
     
-    with c1:
-        # Buscamos el índice guardado para que aparezca seleccionado por defecto
+    # Primera Fila: First Scorer y Coin Toss Result
+    row1_c1, row1_c2 = st.columns(2)
+    with row1_c1:
         def_scorer = equipos.index(datos['first_scorer']) if datos['first_scorer'] in equipos else 0
-        nuevo_scorer = st.selectbox("First Scorer", equipos, index=def_scorer)
-        
-    with c2:
+        nuevo_scorer = st.selectbox("1st Half First Scorer", equipos, index=def_scorer)
+    with row1_c2:
         def_toss_res = opciones_volado.index(datos['coin_toss_result']) if datos['coin_toss_result'] in opciones_volado else 0
         nuevo_toss_res = st.selectbox("Coin Toss Result", opciones_volado, index=def_toss_res)
-        
-    with c3:
+
+    # Segunda Fila: Coin Toss Winner y Second Half Scorer
+    row2_c1, row2_c2 = st.columns(2)
+    with row2_c1:
         def_toss_win = equipos.index(datos['coin_toss_winner']) if datos['coin_toss_winner'] in equipos else 0
         nuevo_toss_win = st.selectbox("Coin Toss Winner", equipos, index=def_toss_win)
+    with row2_c2:
+        # --- NUEVO CAMPO: 2nd Half First Scorer ---
+        def_sh_scorer = equipos.index(datos['second_half_first_scorer']) if datos.get('second_half_first_scorer') in equipos else 0
+        nuevo_sh_scorer = st.selectbox("2nd Half First Scorer", equipos, index=def_sh_scorer)
 
     submit = st.form_submit_button("ACTUALIZAR TODO EL REGISTRO", use_container_width=True)
 
 # 6. Lógica de guardado
 if submit:
     try:
-        # Enviamos los 5 parámetros a la función del servicio
+        # Ahora enviamos 6 parámetros a la función del servicio
         actualizar_marcador_db(
             nuevo_pats, 
             nuevo_hawks, 
             nuevo_scorer, 
             nuevo_toss_res, 
-            nuevo_toss_win
+            nuevo_toss_win,
+            nuevo_sh_scorer  # Sexto parámetro enviado
         )
         
         st.success("✅ Registro completo actualizado exitosamente.")

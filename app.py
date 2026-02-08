@@ -5,6 +5,7 @@ PH_EQUIPO = "-- Selecciona equipo ganador --"
 PH_BOLADO = "-- Selecciona resultado del volado --"
 PH_GANADOR_BOLADO = "-- Selecciona ganador del volado --"
 PH_PRIMER_ANOTADOR = "-- Selecciona primer anotador --"
+PH_SECOND_HALF_SCORER = "-- Selecciona anotador 2da mitad --" # Nueva constante
 
 with st.form("user_form"):
     name = st.text_input("Nombre")
@@ -35,6 +36,12 @@ with st.form("user_form"):
         [PH_PRIMER_ANOTADOR, "Seahawks", "Patriots"]
     )
 
+    # --- NUEVA CATEGORÍA ---
+    second_half_first_scorer = st.selectbox(
+        "Primer anotador de la 2da Mitad",
+        [PH_SECOND_HALF_SCORER, "Seahawks", "Patriots"]
+    )
+
     submitted = st.form_submit_button("Guardar")
 
     if submitted:
@@ -60,16 +67,23 @@ with st.form("user_form"):
             st.error("Debes seleccionar el primer anotador")
             errores = True
 
+        # Validación nueva categoría
+        if second_half_first_scorer == PH_SECOND_HALF_SCORER:
+            st.error("Debes seleccionar quién anotará primero en la segunda mitad")
+            errores = True
+
         if errores:
             st.stop()
 
+        # Enviamos el nuevo campo a la función save_pick
         save_pick(
             nombre=name,
             equipo_ganador=equipo_ganador,
             puntos_totales=puntos_totales,
             resultado_bolado=resultado_bolado,
             ganador_bolado=ganador_bolado,
-            primer_anotador=primer_anotador
+            primer_anotador=primer_anotador,
+            second_half_first_scorer=second_half_first_scorer # Nuevo argumento
         )
 
         st.success("Formulario guardado correctamente ✅")
