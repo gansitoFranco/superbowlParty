@@ -10,7 +10,7 @@ def get_connection():
     
     return mysql.connector.connect(
         host=credentials["host"],
-        user=credentials["username"], # Nota: en tu TOML es "username", no "user"
+        user=credentials["user"], # Nota: en tu TOML es "username", no "user"
         password=credentials["password"],
         database=credentials["database"], # Nota: en tu TOML es "database", no "SuperBowlParty"
         port=int(credentials["port"])
