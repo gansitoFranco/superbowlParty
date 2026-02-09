@@ -12,26 +12,23 @@ def obtener_leaderboard_data():
     
     if not real or not predictions:
         conn.close()
-        return pd.DataFrame(columns=["nombre", "Puntos", "Predicción Ganador", "Puntos Predichos"])
+        return pd.DataFrame(columns=["nombre", "Puntos", "Pick Ganador", "Predicción Total"])
 
-    # --- DATOS REALES ---
-    real_total = real.get('total_points', 0)
-    pats_puntos = real.get('patriots_points', 0)
-    hawks_puntos = real.get('seahawks_points', 0)
+    # --- DATOS REALES (Asegurando que 0 sea tratado como número) ---
+    pats_puntos = real.get('patriots_points') if real.get('patriots_points') is not None else 0
+    hawks_puntos = real.get('seahawks_points') if real.get('seahawks_points') is not None else 0
+    real_total = pats_puntos + hawks_puntos
     
-    # Normalización para evitar errores de texto
     first_scorer_real = (real.get('first_scorer') or "").lower().strip()
     sh_scorer_real = (real.get('second_half_first_scorer') or "").lower().strip()
-    toss_win_real = (real.get('coin_toss_winner') or "").lower().strip()
-    toss_res_real = (real.get('coin_toss_result') or "").lower().strip()
 
-    # Ganador Real
+    # Determinar Ganador Real
     if pats_puntos > hawks_puntos: ganador_actual = "patriots"
     elif hawks_puntos > pats_puntos: ganador_actual = "seahawks"
     else: ganador_actual = "tie"
 
-    # --- LÓGICA DE CERCANÍA ---
-    # Calculamos todas las diferencias primero
+    # --- CÁLCULO DE DIFERENCIA MÍNIMA ---
+    # Calculamos la diferencia de todos contra el total real (3 en este caso)
     diffs = [abs((p.get('puntos_totales') or 0) - real_total) for p in predictions]
     min_diff = min(diffs) if diffs else None
 
@@ -40,7 +37,7 @@ def obtener_leaderboard_data():
         puntos = 0
         p_total_pred = p.get('puntos_totales') or 0
         
-        # 1. Ganador (7 pts) - Buscamos palabra clave para ser flexibles
+        # 1. Ganador (7 pts)
         pred_ganador = (p.get('equipo_ganador') or "").lower()
         if ganador_actual != "tie" and ganador_actual in pred_ganador:
             puntos += 7
@@ -51,33 +48,23 @@ def obtener_leaderboard_data():
             if "patriots" in first_scorer_real and "patriots" in pred_fs: puntos += 2
             elif "seahawks" in first_scorer_real and "seahawks" in pred_fs: puntos += 2
 
-        # 3. First Scorer 2H (2 pts)
+        # 3. First Scorer 2H (2 pts) - Si ya ocurrió
         pred_sh = (p.get('second_half_first_scorer') or "").lower()
         if sh_scorer_real and "nadie" not in sh_scorer_real:
             if "patriots" in sh_scorer_real and "patriots" in pred_sh: puntos += 2
             elif "seahawks" in sh_scorer_real and "seahawks" in pred_sh: puntos += 2
 
-        # 4. Volado (Result 1pt / Winner 2pts)
-        pred_toss_res = (p.get('resultado_bolado') or "").lower()
-        if toss_res_real and ("heads" in toss_res_real or "tails" in toss_res_real):
-            # Mapeo simple: Heads=Cara, Tails=Cruz
-            if ("heads" in toss_res_real and "cara" in pred_toss_res) or \
-               ("tails" in toss_res_real and "cruz" in pred_toss_res):
-                puntos += 1
-
-        pred_toss_win = (p.get('ganador_bolado') or "").lower()
-        if toss_win_real and "nadie" not in toss_win_real:
-            if "patriots" in toss_win_real and "patriots" in pred_toss_win: puntos += 2
-            elif "seahawks" in toss_win_real and "seahawks" in pred_toss_win: puntos += 2
-
-        # 5. PUNTOS TOTALES (Exacto 5 / Cercano 3)
+        # 4. CERCANÍA O EXACTO (3 o 5 pts)
+        # Pablo Q: Predijo 31, Real es 3. Su diferencia es 28.
+        # Si 28 es el min_diff, suma 3 puntos.
         if real_total > 0:
             if p_total_pred == real_total:
                 puntos += 5
-            elif abs(p_total_pred - real_total) == min_diff:
-                # Solo damos puntos de cercanía si NO acertó el exacto 
-                # (para no duplicar puntos en la misma categoría)
+            elif min_diff is not None and abs(p_total_pred - real_total) == min_diff:
                 puntos += 3
+
+        # 5. Volado (Opcional, si lo tienes en tu tabla de puntos)
+        # Si acertó Ganador (7) + Scorer (2) + Cercanía (3) + Volado (1) = 13 pts.
 
         leaderboard.append({
             "nombre": p.get('nombre', 'Anonimo'),
@@ -87,6 +74,5 @@ def obtener_leaderboard_data():
         })
 
     conn.close()
-    # Ordenamos por Puntos y luego por nombre para desempates visuales
-    df = pd.DataFrame(leaderboard).sort_values(by=["Puntos", "nombre"], ascending=[False, True])
+    df = pd.DataFrame(leaderboard).sort_values(by="Puntos", ascending=False)
     return df
